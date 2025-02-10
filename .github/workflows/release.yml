@@ -72,7 +72,7 @@ jobs:
         id: get_version
         run: |
           VERSION=$(grep "JOYDANCE_VERSION" joydance/constants.py | awk -F "'" '{print $2}')
-          echo "::set-output name=version::$VERSION"
+          echo "{version}={$VERSION}" >> $GITHUB_OUTPUT
 
       - name: Determine Base Commit (Tag Before Latest)
         id: determine_base_commit
