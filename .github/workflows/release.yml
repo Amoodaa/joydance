@@ -67,7 +67,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Determine Base Commit (Tag Before Latest)
+      - name: Determine Tags to use for changelog
         id: determine_tags
         run: |
           # Get the latest tag
@@ -78,11 +78,11 @@ jobs:
 
           echo "Latest tag: $LATEST_TAG"
           echo "Previous tag: $PREVIOUS_TAG"
-          echo "{PREVIOUS_TAG}={$PREVIOUS_TAG}" >> $GITHUB_ENV
-          echo "{LATEST_TAG}={$LATEST_TAG}" >> $GITHUB_ENV
+          echo "PREVIOUS_TAG=$PREVIOUS_TAG" >> $GITHUB_ENV
+          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
 
       - name: Create Changelog
-        run: git log --pretty=format:"%h - %s (%an)" ${{ github.env.PREVIOUS_TAG }}..${{ github.env.LATEST_TAG }} > ${{ github.workspace }}-${{ github.env.LATEST_TAG }}-CHANGELOG.txt
+        run: git log --pretty=format:"%h - %s (%an)" $PREVIOUS_TAG..$LATEST_TAG > ${{ github.workspace }}-${{ github.env.LATEST_TAG }}-CHANGELOG.txt
 
       - uses: actions/download-artifact@v4
         with:
