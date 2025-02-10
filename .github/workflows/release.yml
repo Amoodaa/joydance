@@ -92,5 +92,5 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: ./dist/dance.exe
-          body_path: ${{ github.workspace }}-${{ env.LATEST_TAG }}-CHANGELOG.txt
-          tag_name: ${{ env.LATEST_TAG }}
+          body_path: ${{ github.workspace }}-${{ github.env.LATEST_TAG }}-CHANGELOG.txt
+          tag_name: ${{ github.env.LATEST_TAG }}
