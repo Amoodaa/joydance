@@ -1,9 +1,11 @@
 import asyncio
 import json
 import logging
+import os
 import platform
 import re
 import socket
+import sys
 import time
 from configparser import ConfigParser
 from enum import Enum
@@ -325,21 +327,30 @@ async def websocket_handler(request):
     return ws
 
 
-def favicon_handler(request):
-    return web.FileResponse('static/favicon.png')
-
-
 app = web.Application()
 app['joydance_connections'] = {}
 app['joycons_info'] = {}
 
 app.on_startup.append(on_startup)
+
+if getattr(sys, 'frozen', False):
+    # if you are running in a |PyInstaller| bundle
+    extDataDir = sys._MEIPASS
+    #you should use extDataDir as the path to your file
+else:
+    # we are running in a normal Python environment
+    extDataDir = os.getcwd()
+    #you should use extDataDir as the path to your file
+
+def favicon_handler(request):
+    return web.FileResponse(os.path.join(extDataDir, 'static/favicon.png'))
+
 app.add_routes([
     web.get('/', html_handler),
     web.get('/favicon.png', favicon_handler),
     web.get('/ws', websocket_handler),
-    web.static('/css', 'static/css'),
-    web.static('/js', 'static/js'),
+    web.static('/css', os.path.join(extDataDir, 'static/css')),
+    web.static('/js', os.path.join(extDataDir, 'static/js')),
 ])
 
 web.run_app(app, port=32623)
