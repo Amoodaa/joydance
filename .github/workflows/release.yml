@@ -3,7 +3,7 @@ name: Build, upload artifact and create release
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "*.*.*"
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review, labeled]
 
@@ -61,21 +61,14 @@ jobs:
   create_release:
     needs: test_run_artifact
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || contains(github.event.pull_request.labels.*.name, 'create-pull-request-release') }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Get version from constants.py
-        if: contains(github.event.pull_request.labels.*.name, 'create-pull-request-release')
-        id: get_version
-        run: |
-          VERSION=$(grep "JOYDANCE_VERSION" joydance/constants.py | awk -F "'" '{print $2}')
-          echo "{version}={$VERSION}" >> $GITHUB_OUTPUT
-
       - name: Determine Base Commit (Tag Before Latest)
-        id: determine_base_commit
+        id: determine_tags
         run: |
           # Get the latest tag
           LATEST_TAG=$(git describe --tags --abbrev=0)
@@ -85,10 +78,11 @@ jobs:
 
           echo "Latest tag: $LATEST_TAG"
           echo "Previous tag: $PREVIOUS_TAG"
-          echo "::set-output name=prev_tag::$PREVIOUS_TAG"
+          echo "{prev_tag}={$PREVIOUS_TAG}" >> $GITHUB_OUTPUT
+          echo "{latest_tag}={$LATEST_TAG}" >> $GITHUB_OUTPUT
 
       - name: Create Changelog
-        run: git log --pretty=format:"%h - %s (%an)" ${{ steps.determine_base_commit.outputs.base_commit }}..${{ github.sha }} > ${{ github.workspace }}-${{ steps.get_version.outputs.version }}-CHANGELOG.txt
+        run: git log --pretty=format:"%h - %s (%an)" ${{ steps.determine_tags.outputs.prev_tag }}..${{ steps.determine_tags.outputs.latest_tag }} > ${{ github.workspace }}-${{ steps.determine_tags.outputs.latest_tag}}-CHANGELOG.txt
 
       - uses: actions/download-artifact@v4
         with:
@@ -98,6 +92,5 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: ./dist/dance.exe
-          body_path: ${{ github.workspace }}-${{ steps.get_version.outputs.version }}-CHANGELOG.txt
-          tag_name: ${{ steps.get_version.outputs.version }}
-          prerelease: ${{ contains(github.event.pull_request.labels.*.name, 'create-pull-request-release') }}
+          body_path: ${{ github.workspace }}-${{ steps.determine_tags.outputs.latest_tag }}-CHANGELOG.txt
+          tag_name: ${{ steps.determine_tags.outputs.latest_tag }}
