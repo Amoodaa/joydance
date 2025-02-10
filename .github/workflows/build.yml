@@ -13,18 +13,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup MSBuild Path
-        uses: microsoft/setup-msbuild@v2
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
 
-      - run: choco install -y dotnetfx
+      - name: Install dependencies
+        run: pip3 install -r requirements.txt
 
-      - run: nuget restore Joydance.sln
+      - name: Install PyInstaller
+        run: pip install pyinstaller
 
-      - name: Build
-        run: msbuild Joydance.sln /p:Configuration=Release
+      - name: Build executable
+        run: pyinstaller dance.py --onefile
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Joydance
-          path: Joydance/bin/Release/Joydance.exe
+          path: dist/dance.exe
