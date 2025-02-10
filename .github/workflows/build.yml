@@ -33,6 +33,8 @@ jobs:
           $specFile = $specFile -replace "datas=\[\]", "datas=[('static', 'static')]"
           $specFile | Set-Content dance.spec
 
+      - run: cat dance.spec
+
       - name: Build executable
         run: pyinstaller dance.spec
 
