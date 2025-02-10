@@ -3,8 +3,9 @@ name: Build, upload artifact and create release
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "*.*.*"
   pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, labeled]
 
 jobs:
   build:
@@ -60,21 +61,28 @@ jobs:
   create_release:
     needs: test_run_artifact
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || contains(github.event.pull_request.labels.*.name, 'create-pull-request-release') }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Get version from constants.py
-        if: contains(github.event.pull_request.labels.*.name, 'create-pull-request-release')
-        id: get_version
+      - name: Determine Tags to use for changelog
+        id: determine_tags
         run: |
-          VERSION=$(grep "JOYDANCE_VERSION" joydance/constants.py | awk -F "'" '{print $2}')
-          echo "::set-output name=version::$VERSION"
+          # Get the latest tag
+          LATEST_TAG=$(git describe --tags --abbrev=0)
+
+          # Get the tag before the latest tag
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 $LATEST_TAG^)
+
+          echo "Latest tag: $LATEST_TAG"
+          echo "Previous tag: $PREVIOUS_TAG"
+          echo "PREVIOUS_TAG=$PREVIOUS_TAG" >> $GITHUB_ENV
+          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
 
       - name: Create Changelog
-        run: git log --pretty=format:"%h - %s (%an)" ${{ github.event.before }}..${{ github.sha }} > ${{ github.workspace }}-${{ steps.get_version.outputs.version }}-CHANGELOG.txt
+        run: git log --pretty=format:"%h - %s (@%an)" $PREVIOUS_TAG..$LATEST_TAG > ${{ github.workspace }}-${{ github.env.LATEST_TAG }}-CHANGELOG.txt
 
       - uses: actions/download-artifact@v4
         with:
@@ -84,6 +92,5 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: ./dist/dance.exe
-          body_path: ${{ github.workspace }}-${{ steps.get_version.outputs.version }}-CHANGELOG.txt
-          tag_name: ${{ steps.get_version.outputs.version }}
-          prerelease: ${{ contains(github.event.pull_request.labels.*.name, 'create-pull-request-release') }}
+          body_path: ${{ github.workspace }}-${{ github.env.LATEST_TAG }}-CHANGELOG.txt
+          tag_name: ${{ github.env.LATEST_TAG }}
