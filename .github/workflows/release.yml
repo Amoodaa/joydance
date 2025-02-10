@@ -82,7 +82,7 @@ jobs:
           echo "{LATEST_TAG}={$LATEST_TAG}" >> $GITHUB_OUTPUT
 
       - name: Create Changelog
-        run: git log --pretty=format:"%h - %s (%an)" $PREVIOUS_TAG..$LATEST_TAG > ${{ github.workspace }}-$LATEST_TAG-CHANGELOG.txt
+        run: git log --pretty=format:"%h - %s (%an)" ${{ github.env.PREVIOUS_TAG }}..${{ github.env.LATEST_TAG }} > ${{ github.workspace }}-${{ github.env.LATEST_TAG }}-CHANGELOG.txt
 
       - uses: actions/download-artifact@v4
         with:
