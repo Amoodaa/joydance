@@ -30,7 +30,7 @@ jobs:
         shell: pwsh
         run: |
           $specFile = Get-Content dance.spec
-          $specFile = $specFile -replace "datas=\[\]", "datas=\[('static', 'static')]"
+          $specFile = $specFile -replace "datas=\[\]", "datas=[('static', 'static')]"
           $specFile | Set-Content dance.spec
 
       - name: Build executable
