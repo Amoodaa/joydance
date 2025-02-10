@@ -1,0 +1,89 @@
+name: Build, upload artifact and create release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: pip3 install -r requirements.txt
+
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+
+      - name: Create PyInstaller spec file
+        run: pyi-makespec --onefile dance.py
+
+      - name: Edit PyInstaller spec file to include static folder
+        shell: pwsh
+        run: |
+          $specFile = Get-Content dance.spec
+          $specFile = $specFile -replace "datas=\[\]", "datas=[('static', 'static')]"
+          $specFile | Set-Content dance.spec
+
+      - name: Build executable
+        run: pyinstaller dance.spec
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: joydance-win64-executable
+          path: dist/dance.exe
+
+  test_run_artifact:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: joydance-win64-executable
+          path: ./dist
+      - name: Run the artifact
+        run: |
+          Start-Process -FilePath "./dist/dance.exe"
+          Start-Sleep -Seconds 30 # Run for 30 seconds
+          Stop-Process -Name "dance" # Replace with the actual process name if different
+        shell: pwsh
+
+  create_release:
+    needs: test_run_artifact
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') || contains(github.event.pull_request.labels.*.name, 'create-pull-request-release') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from constants.py
+        if: contains(github.event.pull_request.labels.*.name, 'create-pull-request-release')
+        id: get_version
+        run: |
+          VERSION=$(grep "JOYDANCE_VERSION" joydance/constants.py | awk -F "'" '{print $2}')
+          echo "::set-output name=version::$VERSION"
+
+      - name: Create Changelog
+        run: git log --pretty=format:"%h - %s (%an)" ${{ github.event.before }}..${{ github.sha }} > ${{ github.workspace }}-${{ steps.get_version.outputs.version }}-CHANGELOG.txt
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: joydance-win64-executable
+          path: ./dist
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: ./dist/dance.exe
+          body_path: ${{ github.workspace }}-${{ steps.get_version.outputs.version }}-CHANGELOG.txt
+          tag_name: ${{ steps.get_version.outputs.version }}
+          prerelease: ${{ contains(github.event.pull_request.labels.*.name, 'create-pull-request-release') }}
