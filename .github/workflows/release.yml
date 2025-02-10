@@ -1,4 +1,4 @@
-name: Release on tags
+name: Build, upload artifact and create release
 
 on:
   push:
