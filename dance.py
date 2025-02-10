@@ -280,16 +280,6 @@ Open http://localhost:32623 in your browser.''')
             if JOYDANCE_VERSION != latest_version:
                 print('\033[93m{}\033[00m'.format('Version {} is available: https://github.com/redphx/joydance'.format(latest_version)))
 
-
-async def html_handler(request):
-    config = dict((parse_config()).items('joydance'))
-    with open('static/index.html', 'r') as f:
-        html = f.read()
-        html = html.replace('[[CONFIG]]', json.dumps(config))
-        html = html.replace('[[VERSION]]', JOYDANCE_VERSION)
-        return web.Response(text=html, content_type='text/html')
-
-
 async def ws_send_response(ws, cmd, data):
     resp = {
         'cmd': 'resp_' + cmd.value,
@@ -344,6 +334,14 @@ else:
 
 def favicon_handler(request):
     return web.FileResponse(os.path.join(extDataDir, 'static/favicon.png'))
+
+async def html_handler(request):
+    config = dict((parse_config()).items('joydance'))
+    with open(os.path.join(extDataDir,'static/index.html'), 'r') as f:
+        html = f.read()
+        html = html.replace('[[CONFIG]]', json.dumps(config))
+        html = html.replace('[[VERSION]]', JOYDANCE_VERSION)
+        return web.Response(text=html, content_type='text/html')
 
 app.add_routes([
     web.get('/', html_handler),
