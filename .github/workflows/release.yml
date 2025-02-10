@@ -72,8 +72,13 @@ jobs:
         with:
           name: joydance-win64-executable
           path: ./dist
-
+      - name: Get version from constants.py
+        id: get_version
+        run: |
+          VERSION=$(grep "JOYDANCE_VERSION" joydance/constants.py | awk -F "'" '{print $2}')
+          echo "::set-output name=version::$VERSION"
       - uses: softprops/action-gh-release@v2
         with:
           files: ./dist/dance.exe
           body_path: ${{ github.workspace }}-CHANGELOG.txt
+          tag_name: ${{ steps.get_version.outputs.version }}
